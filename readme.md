@@ -14,7 +14,7 @@ echo ".npmrc" >> .gitignore
 git remote add origin git@github.com:VincentZyu233/qwq-npm-test.git
 git add .
 git commit -m "pub qwq"
-# 去github仓库设置，Secrets and variables -> Actions -> New repository secret， 名字是NPM_TOKEN， 内容是npm_... 开头的字符
+# 去github仓库设置，Secrets and variables -> Actions -> New repository secret， 名字是NPM_TOKEN， 内容是npm网站申请的npm_... 开头的字符
 git push -u origin master
 
 ```
