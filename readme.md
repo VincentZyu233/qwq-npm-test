@@ -7,3 +7,13 @@ proxychains4 npm publish --registry https://registry.npmjs.org
 ```
 
 # github action
+```bash
+git init
+touch .gitignore
+echo ".npmrc" >> .gitignore
+git remote add origin git@github.com:VincentZyu233/qwq-npm-test.git
+git add .
+git commit -m "pub qwq"
+git push -u origin master
+
+```
