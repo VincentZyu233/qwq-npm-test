@@ -3,7 +3,7 @@ name: Manual Publish by Commit Message
 on:
   push:
     branches:
-      - main  # 只有推送到主分支才检查
+      - master  # 只有推送到主分支才检查
 
 jobs:
   publish:
