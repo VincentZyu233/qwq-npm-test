@@ -1,4 +1,5 @@
 *.md linguist-detectable=true
+*.json linguist-detectable=true
 *.yml linguist-detectable=true
 *.yaml linguist-detectable=true
 .gitattributes linguist-detectable=true
