@@ -2,4 +2,4 @@
 *.json linguist-detectable=true
 *.yml linguist-detectable=true -linguist-vendored
 *.yaml linguist-detectable=true -linguist-vendored
-.gitattributes linguist-detectable=true
+.gitattributes linguist-language=gitattributes linguist-detectable -linguist-documentation -linguist-vendored -linguist-generated
