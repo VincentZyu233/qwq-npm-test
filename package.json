@@ -1,7 +1,7 @@
 {
   "name": "qwq-npm-test",
-  "version": "0.2.2",
-  "description": "🧪 A sandbox repository for evaluating GitHub Actions CI/CD workflows within the npm ecosystem. 📦",
+  "version": "0.3.0",
+  "description": "🧪 一个用于评估 npm 生态系统中 GitHub Actions CI/CD 工作流的沙盒仓库。📦 / A sandbox repository for evaluating GitHub Actions CI/CD workflows within the npm ecosystem. 📦",
   "main": "index.js",
   "scripts": {
     "test": "node test.js"
@@ -23,7 +23,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/VincentZyuApps/qwq-npm-test.git"
+    "url": "https://github.com/VincentZyuApps/qwq-npm-test.git"
   },
   "author": ""
 }

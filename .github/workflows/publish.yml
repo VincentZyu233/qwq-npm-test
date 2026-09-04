@@ -7,18 +7,30 @@ on:
       - main
 
 jobs:
-  check-commit:
+  check_publish_keyword:
     runs-on: ubuntu-latest
+    outputs:
+      should_publish: ${{ steps.keyword.outputs.should_publish }}
     steps:
-      - uses: actions/checkout@v4
-      - name: Check commit message
+      - name: Check publish keyword
+        id: keyword
+        env:
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         run: |
-          echo "Commit message: ${{ github.event.head_commit.message }}"
           echo "Triggered by: ${{ github.actor }}"
+          echo "Commit message: ${COMMIT_MESSAGE}"
+
+          if [[ "${COMMIT_MESSAGE}" =~ \[publish-?package\] ]]; then
+            echo "should_publish=true" >> "${GITHUB_OUTPUT}"
+            echo "Publish keyword matched."
+          else
+            echo "should_publish=false" >> "${GITHUB_OUTPUT}"
+            echo "Publish keyword not found; publish jobs will be skipped."
+          fi
 
   test:
-    needs: check-commit
-    if: startsWith(github.event.head_commit.message, 'pub')
+    needs: check_publish_keyword
+    if: needs.check_publish_keyword.outputs.should_publish == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -31,7 +43,6 @@ jobs:
 
   publish-npm-unscoped:
     needs: test
-    if: startsWith(github.event.head_commit.message, 'pub')
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -50,7 +61,6 @@ jobs:
 
   publish-npm-scoped:
     needs: test
-    if: startsWith(github.event.head_commit.message, 'pub')
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -71,7 +81,6 @@ jobs:
 
   publish-github-packages-scoped:
     needs: test
-    if: startsWith(github.event.head_commit.message, 'pub')
     runs-on: ubuntu-latest
     permissions:
       contents: read
