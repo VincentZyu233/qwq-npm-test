@@ -123,6 +123,31 @@ Open **Settings → Trusted publishing** for each of these two packages and add 
 | 环境名称<br>Environment name | 留空<br>Leave blank |
 | 允许的操作<br>Allowed actions | 启用 `npm publish`<br>Enable `npm publish` |
 
+#### 页面操作步骤 / Page Setup Steps
+
+下面的操作需要在 `qwq-npm-test` 和 `@vincentzyuapps/qwq-npm-test-scoped` 两个软件包中分别完成一次：
+
+Complete the following steps separately for both `qwq-npm-test` and `@vincentzyuapps/qwq-npm-test-scoped`:
+
+1. 在 **可信发布（Trusted publishing）** 表单中按上表填写 GitHub 组织、仓库和工作流文件名，环境名称保持为空。<br>
+   In the **Trusted publishing** form, enter the GitHub organization, repository, and workflow filename shown above, and leave the environment name blank.
+2. 在 **允许的操作（Allowed actions）** 下勾选 **Allow `npm publish`**。当前工作流直接运行 `npm publish`；如果不勾选，连接将只允许 `npm stage publish`，OIDC 发布会失败。<br>
+   Under **Allowed actions**, select **Allow `npm publish`**. The current workflow runs `npm publish` directly. Without this option, the connection allows only `npm stage publish`, and OIDC publishing will fail.
+3. 点击 **建立连接（Set up connection）**，创建该软件包与 GitHub Actions 工作流之间的信任关系。<br>
+   Click **Set up connection** to create the trust relationship between the package and the GitHub Actions workflow.
+4. 在同一软件包设置页的 **发布访问权限（Publishing access）** 中，根据是否需要保留 Token 发布选择安全策略。<br>
+   Under **Publishing access** on the same package settings page, choose a security policy based on whether token publishing must remain available.
+5. 点击 **更新软件包设置（Update Package Settings）** 保存发布访问权限。<br>
+   Click **Update Package Settings** to save the publishing access policy.
+
+| 使用目标<br>Goal | 发布访问权限选项<br>Publishing access option | 结果<br>Result |
+|---|---|---|
+| 只使用 OIDC，安全性最高<br>OIDC only, maximum security | **要求双重身份验证并禁止绕过 2FA 的令牌（推荐）**<br>**Require two-factor authentication and disallow bypass 2FA tokens (recommended)** | `[publish-oidc]` 可用；`[publish-token]` 会被 npm 拒绝<br>`[publish-oidc]` works; npm rejects `[publish-token]` |
+| 同时保留 OIDC 和 Token<br>Keep both OIDC and token publishing | **要求双重身份验证，或使用已启用绕过 2FA 的细粒度访问令牌**<br>**Require two-factor authentication or a granular access token with bypass 2FA enabled** | `[publish-oidc]` 和 `[publish-token]` 都可用，但必须维护并轮换 `NPM_TOKEN`<br>Both `[publish-oidc]` and `[publish-token]` work, but `NPM_TOKEN` must be maintained and rotated |
+
+> 如果页面当前选中的是第二项，则可以同时测试 OIDC 和 Token 两种发布方式。如果只打算长期使用 OIDC，请在 OIDC 验证成功后改选第一项，并撤销不再使用的发布令牌。<br>
+> If the second option is currently selected, you can test both OIDC and token publishing. If you intend to use only OIDC long term, select the first option after OIDC has been verified and revoke the unused publish token.
+
 > 所有字段均区分大小写，工作流文件名只能填写文件名，不能填写 `.github/workflows/publish.yml` 完整路径。详情参见 [npm Trusted Publishing 官方文档 / npm Trusted Publishing documentation](https://docs.npmjs.com/trusted-publishers/)。<br>
 > All fields are case-sensitive. Enter only the workflow filename, not the full `.github/workflows/publish.yml` path. See the [npm Trusted Publishing 官方文档 / npm Trusted Publishing documentation](https://docs.npmjs.com/trusted-publishers/) for details.
 
