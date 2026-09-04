@@ -1,15 +1,17 @@
 ![qwq-npm-test 项目概览 / Project overview](https://socialify.git.ci/VincentZyuApps/qwq-npm-test/image?custom_description=%F0%9F%A7%AA%20%E4%B8%80%E4%B8%AA%E7%94%A8%E4%BA%8E%E8%AF%84%E4%BC%B0%20npm%20%E7%94%9F%E6%80%81%E7%B3%BB%E7%BB%9F%E4%B8%AD%20GitHub%20Actions%20CI%2FCD%20%E5%B7%A5%E4%BD%9C%E6%B5%81%E7%9A%84%E6%B2%99%E7%9B%92%E4%BB%93%E5%BA%93%E3%80%82%F0%9F%93%A6%20%2F%20A%20sandbox%20repository%20for%20evaluating%20GitHub%20Actions%20CI%2FCD%20workflows%20within%20the%20npm%20ecosystem.%20%F0%9F%93%A6&custom_language=NPM&description=1&font=Source+Code+Pro&forks=1&issues=1&language=1&logo=https%3A%2F%2Ficon.icepanel.io%2FTechnology%2Fsvg%2FGitHub-Actions.svg&name=1&owner=1&pulls=1&stargazers=1&theme=Auto)
 
 # qwq-npm-test
+[![CI 状态 / CI Status](https://img.shields.io/github/actions/workflow/status/VincentZyuApps/qwq-npm-test/publish.yml?branch=master&label=CI%20%E7%8A%B6%E6%80%81%20%2F%20CI%20Status&style=for-the-badge&logo=githubactions&logoColor=white)](https://github.com/VincentZyuApps/qwq-npm-test/actions/workflows/publish.yml)
 
 > 🧪 一个用于评估 npm 生态系统中 GitHub Actions CI/CD 工作流的沙盒仓库。📦<br>
 > 🧪 A sandbox repository for evaluating GitHub Actions CI/CD workflows within the npm ecosystem. 📦
 
 [![npm 非作用域 / npm unscoped](https://img.shields.io/npm/v/qwq-npm-test?label=npm%20%E9%9D%9E%E4%BD%9C%E7%94%A8%E5%9F%9F%20%2F%20npm%20unscoped&style=for-the-badge&logo=npm)](https://www.npmjs.com/package/qwq-npm-test)
+
 [![npm 作用域 / npm scoped](https://img.shields.io/npm/v/%40vincentzyuapps%2Fqwq-npm-test-scoped?label=npm%20%E4%BD%9C%E7%94%A8%E5%9F%9F%20%2F%20npm%20scoped&style=for-the-badge&logo=npm)](https://www.npmjs.com/package/@vincentzyuapps/qwq-npm-test-scoped)
+
 [![GitHub 软件包 / GitHub Packages](https://img.shields.io/npm/v/%40vincentzyuapps%2Fqwq-npm-test-scoped?label=GitHub%20%E8%BD%AF%E4%BB%B6%E5%8C%85%20%2F%20GitHub%20Packages&style=for-the-badge&logo=github)](https://github.com/VincentZyuApps/qwq-npm-test/pkgs/npm/qwq-npm-test-scoped)
 
-[![CI 状态 / CI Status](https://img.shields.io/github/actions/workflow/status/VincentZyuApps/qwq-npm-test/publish.yml?branch=master&label=CI%20%E7%8A%B6%E6%80%81%20%2F%20CI%20Status&style=for-the-badge&logo=githubactions&logoColor=white)](https://github.com/VincentZyuApps/qwq-npm-test/actions/workflows/publish.yml)
 
 ---
 
