@@ -88,68 +88,152 @@ npm publish --registry https://registry.npmjs.org --access public
 
 ## 🤖 通过 GitHub Actions 自动发布 / Auto Publish via GitHub Actions
 
-> **前置条件：** 在 GitHub 仓库的 **设置（Settings）→ 机密和变量（Secrets and variables）→ 操作（Actions）→ 新建仓库机密（New repository secret）** 中添加以下密钥：<br>
-> **Prerequisites:** Add the following secret in the GitHub repository under **Settings → Secrets and variables → Actions → New repository secret**:
->
-> - `NPM_TOKEN`：拥有 `qwq-npm-test` 和 `@vincentzyuapps/qwq-npm-test-scoped` 发布权限的 npm 令牌<br>
->   `NPM_TOKEN`: An npm token with publish permission for both `qwq-npm-test` and `@vincentzyuapps/qwq-npm-test-scoped`
+工作流支持两种 npmjs.org 身份验证方式。两种方式都会运行测试并完成三个发布任务：两个 npmjs.org 软件包使用所选方式，GitHub Packages 软件包始终使用 `GITHUB_TOKEN`。
 
-```bash
-# 1. 初始化 Git 仓库
-# 1. Initialize the Git repository
-git init
-git remote add origin git@github.com:VincentZyuApps/qwq-npm-test.git
-# 2. 提交并提升版本号
-# 2. Commit and bump the version
-git add .
-git commit -m "chore: save changes before version bump"
-npm version patch
-# 3. 再次提交（提交信息必须包含小写 [publish-package] 或 [publishpackage]；方括号必需）
-# 3. Commit again (the message must contain lowercase [publish-package] or [publishpackage]; brackets are required)
-git add .
-git commit -m "chore(ci): 更新双语文档和发布触发规则 [publish-package]"
-# 4. 推送
-# 4. Push
-git push -u origin master
+The workflow supports two authentication methods for npmjs.org. Both run the tests and complete three publish jobs: the two npmjs.org packages use the selected method, while the GitHub Packages package always uses `GITHUB_TOKEN`.
+
+| 对比项<br>Comparison | 方法 1：可信发布（OIDC）<br>Method 1: Trusted Publishing (OIDC) | 方法 2：细粒度访问令牌<br>Method 2: Granular Access Token |
+|---|---|---|
+| 推荐程度<br>Recommendation | **推荐**<br>**Recommended** | 兼容方案<br>Compatibility option |
+| npm 凭据<br>npm credential | 每次运行生成的短期 OIDC 凭据<br>Short-lived OIDC credential generated for each run | GitHub Secret 中保存的长期 `NPM_TOKEN`<br>Long-lived `NPM_TOKEN` stored as a GitHub Secret |
+| 维护方式<br>Maintenance | 无需创建或轮换发布令牌<br>No publish token to create or rotate | 必须在到期前轮换令牌<br>Token must be rotated before expiration |
+| 触发关键词<br>Trigger keyword | `[publish-oidc]` | `[publish-token]` |
+
+### 方法 1：可信发布（OIDC，推荐） / Method 1: Trusted Publishing (OIDC, Recommended)
+
+Trusted Publishing 使用 OpenID Connect 在 GitHub Actions 与 npm 之间建立信任关系，无需长期 `NPM_TOKEN`。npm 会为每次发布签发短期凭据，并自动生成 provenance。
+
+Trusted Publishing uses OpenID Connect to establish trust between GitHub Actions and npm without a long-lived `NPM_TOKEN`. npm issues a short-lived credential for each publish and generates provenance automatically.
+
+#### npmjs.com 设置 / npmjs.com Setup
+
+分别进入以下两个软件包的 **设置（Settings）→ 可信发布（Trusted publishing）**，为每个包添加一条 GitHub Actions 配置：
+
+Open **Settings → Trusted publishing** for each of these two packages and add a GitHub Actions configuration to each package:
+
+- `qwq-npm-test`
+- `@vincentzyuapps/qwq-npm-test-scoped`
+
+| 字段<br>Field | 值<br>Value |
+|---|---|
+| 发布平台<br>Publisher | GitHub Actions |
+| 组织或用户<br>Organization or user | `VincentZyuApps` |
+| 仓库<br>Repository | `qwq-npm-test` |
+| 工作流文件名<br>Workflow filename | `publish.yml` |
+| 环境名称<br>Environment name | 留空<br>Leave blank |
+| 允许的操作<br>Allowed actions | 启用 `npm publish`<br>Enable `npm publish` |
+
+> 所有字段均区分大小写，工作流文件名只能填写文件名，不能填写 `.github/workflows/publish.yml` 完整路径。详情参见 [npm Trusted Publishing 官方文档 / npm Trusted Publishing documentation](https://docs.npmjs.com/trusted-publishers/)。<br>
+> All fields are case-sensitive. Enter only the workflow filename, not the full `.github/workflows/publish.yml` path. See the [npm Trusted Publishing 官方文档 / npm Trusted Publishing documentation](https://docs.npmjs.com/trusted-publishers/) for details.
+
+当前工作流使用 GitHub 托管 runner、Node 24、npm 11.5.1 或更高版本需要的 OIDC 权限，并按以下方式发布：
+
+The current workflow uses a GitHub-hosted runner, Node 24, the OIDC permission required by npm 11.5.1 or later, and publishes as follows:
+
+```yaml
+permissions:
+  id-token: write
+  contents: read
+
+steps:
+  - uses: actions/checkout@v6
+  - uses: actions/setup-node@v6
+    with:
+      node-version: '24'
+      registry-url: 'https://registry.npmjs.org'
+      package-manager-cache: false
+  - run: npm publish --access public
 ```
 
-### 🔑 NPM 令牌设置 / NPM Token Setup
+配置完成后，使用小写且带完整方括号的 `[publish-oidc]` 触发发布：
+
+After setup, trigger publishing with the lowercase `[publish-oidc]` keyword and complete brackets:
+
+```bash
+# 提升版本并运行测试
+# Bump the version and run tests
+npm version patch --no-git-tag-version
+npm test
+# 提交并触发 OIDC 发布
+# Commit and trigger OIDC publishing
+git add -A
+git commit -m "chore(release): 发布新版本 [publish-oidc]"
+git push origin master
+```
+
+> Trusted Publishing 只负责 `npm publish`。如果项目需要安装私有依赖，仍需单独配置只读令牌。它目前也只支持 GitHub 托管 runner。<br>
+> Trusted Publishing only authenticates `npm publish`. Installing private dependencies still requires a separate read-only token. It currently supports only GitHub-hosted runners.
+
+### 方法 2：细粒度访问令牌 / Method 2: Granular Access Token
+
+Token 方式通过 GitHub Secret 向 npm 提供长期凭据。它兼容未配置 Trusted Publishing 的软件包，但令牌会过期，需要定期轮换。
+
+The token method supplies npm with a long-lived credential through a GitHub Secret. It works for packages without Trusted Publishing, but the token expires and must be rotated regularly.
 
 | 字段<br>Field | 值<br>Value |
 |---|---|
 | 令牌类型<br>Token type | 细粒度访问令牌<br>Granular Access Token |
 | **✔ 绕过双重身份验证**<br>**✔ Bypass 2FA** | **必须**<br>**Required** |
-| 软件包 → 权限<br>Packages → Permissions | **读取和写入**<br>**Read and write** |
-| 软件包 → 范围<br>Packages → Scope | **所有软件包**，或同时包含 `qwq-npm-test` 和 `@vincentzyuapps/qwq-npm-test-scoped`<br>**All packages**, or include both `qwq-npm-test` and `@vincentzyuapps/qwq-npm-test-scoped` |
+| 软件包和作用域 → 权限<br>Packages and scopes → Permissions | **读取和写入**<br>**Read and write** |
+| 选择软件包<br>Select Packages | **所有软件包**，或同时包含 `qwq-npm-test` 和 `@vincentzyuapps/qwq-npm-test-scoped`<br>**All Packages**, or include both `qwq-npm-test` and `@vincentzyuapps/qwq-npm-test-scoped` |
 | 组织<br>Organizations | 无访问权限<br>No access |
-| 过期时间<br>Expiration | 建议选择**永不过期**或 **90 天**<br>**No expiration** or **90 days** recommended |
+| 过期时间<br>Expiration | 设置明确的到期日期，并在到期前轮换<br>Set an explicit expiration date and rotate before it expires |
 
-> 生成令牌后，在 GitHub 仓库的 **设置（Settings）→ 机密和变量（Secrets and variables）→ 操作（Actions）** 中添加 `NPM_TOKEN`。<br>
-> After generating the token, add `NPM_TOKEN` in the GitHub repository under **Settings → Secrets and variables → Actions**.
+生成令牌后，在 GitHub 仓库的 **设置（Settings）→ 机密和变量（Secrets and variables）→ 操作（Actions）** 中将其保存为 `NPM_TOKEN`。
 
-### ⚙️ 说明 / Notes
+After generating the token, save it as `NPM_TOKEN` in the GitHub repository under **Settings → Secrets and variables → Actions**.
 
-推送到 `master` 或 `main` 时，GitHub Actions 会检查提交信息：
+使用小写且带完整方括号的 `[publish-token]` 触发 Token 发布：
 
-When pushing to `master` or `main`, GitHub Actions checks the commit message:
+Trigger token publishing with the lowercase `[publish-token]` keyword and complete brackets:
 
-- **包含小写 `[publish-package]` 或 `[publishpackage]`**（方括号必需，连字符可选）→ 自动向 npmjs.org 和 GitHub Packages 发布 **3 个软件包**<br>
-  **contains lowercase `[publish-package]` or `[publishpackage]`** (brackets required, hyphen optional) → automatically publishes **3 packages** across npmjs.org and GitHub Packages
-- **其他情况** → 跳过<br>
-  **otherwise** → skip
+```bash
+# 提升版本并运行测试
+# Bump the version and run tests
+npm version patch --no-git-tag-version
+npm test
+# 提交并触发 Token 发布
+# Commit and trigger token publishing
+git add -A
+git commit -m "chore(release): 发布新版本 [publish-token]"
+git push origin master
+```
+
+### ⚙️ 触发规则 / Trigger Rules
+
+推送到 `master` 或 `main` 时，GitHub Actions 会按完整提交信息选择发布方式：
+
+When pushing to `master` or `main`, GitHub Actions selects the publish method from the complete commit message:
+
+- **包含 `[publish-oidc]`** → npmjs.org 使用 Trusted Publishing，GitHub Packages 使用 `GITHUB_TOKEN`<br>
+  **contains `[publish-oidc]`** → npmjs.org uses Trusted Publishing; GitHub Packages uses `GITHUB_TOKEN`
+- **包含 `[publish-token]`** → npmjs.org 使用 `NPM_TOKEN`，GitHub Packages 使用 `GITHUB_TOKEN`<br>
+  **contains `[publish-token]`** → npmjs.org uses `NPM_TOKEN`; GitHub Packages uses `GITHUB_TOKEN`
+- **同时包含两个关键词** → 门禁失败，不运行测试或发布<br>
+  **contains both keywords** → the gate fails; tests and publish jobs do not run
+- **不包含关键词**（包括旧 `[publish-package]`）→ 门禁成功，测试和发布任务全部跳过<br>
+  **contains neither keyword** (including the old `[publish-package]`) → the gate succeeds; all test and publish jobs are skipped
+
+关键词区分大小写，并且必须包含完整方括号。
+
+Keywords are case-sensitive and must include complete brackets.
 
 ### 🔁 CI 工作流 / CI Workflow
 
 ```mermaid
 flowchart TD
-    Push["🚀 推送 / Push<br>git push master / main"] --> Check["🔍 检查发布关键词 / Check publish keyword<br>check_publish_keyword"]
-    Check --> Q{"❓ 包含小写 '[publish-package]' 或 '[publishpackage]'？<br>Contains lowercase '[publish-package]' or '[publishpackage]'?"}
-    Q -->|否 / No| Done1["✅ 完成 / Done"]
-    Q -->|是 / Yes| Test["🧪 测试 / Test<br>npm test"]
+    Push["🚀 推送 / Push<br>git push master / main"] --> Check["🔍 选择发布方式 / Select publish method<br>check_publish_keyword"]
+    Check --> Q{"❓ 发布关键词 / Publish keyword"}
+    Q -->|"[publish-oidc]"| OIDC["🔐 可信发布 / Trusted Publishing<br>短期 OIDC 凭据 / Short-lived OIDC credential"]
+    Q -->|"[publish-token]"| Token["🔑 令牌发布 / Token publishing<br>NPM_TOKEN"]
+    Q -->|无 / None| Done1["✅ 跳过发布 / Skip publishing"]
+    Q -->|两个 / Both| Conflict["❌ 关键词冲突 / Keyword conflict"]
+    OIDC --> Test["🧪 测试 / Test<br>npm test"]
+    Token --> Test
     Test -->|失败 / Fail| Fail["❌ 中止 / Abort"]
-    Test -->|通过 / Pass| Pub1["**📦 非作用域 / Unscoped**<br>*npmjs.org*<br>qwq-npm-test"]
-    Test -->|通过 / Pass| Pub2["**🏷️ 作用域 / Scoped**<br>*npmjs.org*<br>@vincentzyuapps/qwq-npm-test-scoped"]
-    Test -->|通过 / Pass| Pub3["**🐙 GitHub 软件包 / GitHub Packages**<br>*npm.pkg.github.com*<br>@vincentzyuapps/qwq-npm-test-scoped"]
+    Test -->|通过 / Pass| Pub1["**📦 npm 非作用域 / npm Unscoped**<br>所选认证方式 / Selected authentication"]
+    Test -->|通过 / Pass| Pub2["**🏷️ npm 作用域 / npm Scoped**<br>所选认证方式 / Selected authentication"]
+    Test -->|通过 / Pass| Pub3["**🐙 GitHub 软件包 / GitHub Packages**<br>GITHUB_TOKEN"]
 ```
 
 ---

@@ -10,9 +10,9 @@ jobs:
   check_publish_keyword:
     runs-on: ubuntu-latest
     outputs:
-      should_publish: ${{ steps.keyword.outputs.should_publish }}
+      publish_method: ${{ steps.keyword.outputs.publish_method }}
     steps:
-      - name: Check publish keyword
+      - name: Select publish method
         id: keyword
         env:
           COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
@@ -20,62 +20,90 @@ jobs:
           echo "Triggered by: ${{ github.actor }}"
           echo "Commit message: ${COMMIT_MESSAGE}"
 
-          if [[ "${COMMIT_MESSAGE}" =~ \[publish-?package\] ]]; then
-            echo "should_publish=true" >> "${GITHUB_OUTPUT}"
-            echo "Publish keyword matched."
+          has_oidc=false
+          has_token=false
+
+          if [[ "${COMMIT_MESSAGE}" =~ \[publish-oidc\] ]]; then
+            has_oidc=true
+          fi
+
+          if [[ "${COMMIT_MESSAGE}" =~ \[publish-token\] ]]; then
+            has_token=true
+          fi
+
+          if [[ "${has_oidc}" == "true" && "${has_token}" == "true" ]]; then
+            echo "Both publish keywords are present; choose exactly one." >&2
+            exit 1
+          elif [[ "${has_oidc}" == "true" ]]; then
+            echo "publish_method=oidc" >> "${GITHUB_OUTPUT}"
+            echo "Selected npm Trusted Publishing (OIDC)."
+          elif [[ "${has_token}" == "true" ]]; then
+            echo "publish_method=token" >> "${GITHUB_OUTPUT}"
+            echo "Selected NPM_TOKEN publishing."
           else
-            echo "should_publish=false" >> "${GITHUB_OUTPUT}"
-            echo "Publish keyword not found; publish jobs will be skipped."
+            echo "publish_method=none" >> "${GITHUB_OUTPUT}"
+            echo "No publish keyword found; test and publish jobs will be skipped."
           fi
 
   test:
     needs: check_publish_keyword
-    if: needs.check_publish_keyword.outputs.should_publish == 'true'
+    if: needs.check_publish_keyword.outputs.publish_method != 'none'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: '24'
+          package-manager-cache: false
       - run: npm install
       - name: Run tests
         run: npm test
 
   publish-npm-unscoped:
-    needs: test
+    needs: [check_publish_keyword, test]
     runs-on: ubuntu-latest
     permissions:
       id-token: write
       contents: read
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: '24'
           registry-url: 'https://registry.npmjs.org'
+          package-manager-cache: false
       - run: npm install
-      - name: Publish unscoped package to npm
+      - name: Publish unscoped package to npm with OIDC
+        if: needs.check_publish_keyword.outputs.publish_method == 'oidc'
+        run: npm publish --access public
+      - name: Publish unscoped package to npm with NPM_TOKEN
+        if: needs.check_publish_keyword.outputs.publish_method == 'token'
         run: npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   publish-npm-scoped:
-    needs: test
+    needs: [check_publish_keyword, test]
     runs-on: ubuntu-latest
     permissions:
       id-token: write
       contents: read
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: '24'
           registry-url: 'https://registry.npmjs.org'
+          package-manager-cache: false
       - run: npm install
-      - name: Publish scoped package to npm
-        run: |
-          node -e "const p=require('./package.json'); p.name='@vincentzyuapps/qwq-npm-test-scoped'; require('fs').writeFileSync('./package.json', JSON.stringify(p, null, 2)+'\n')"
-          npm publish --provenance --access public
+      - name: Set scoped package name
+        run: node -e "const p=require('./package.json'); p.name='@vincentzyuapps/qwq-npm-test-scoped'; require('fs').writeFileSync('./package.json', JSON.stringify(p, null, 2)+'\n')"
+      - name: Publish scoped package to npm with OIDC
+        if: needs.check_publish_keyword.outputs.publish_method == 'oidc'
+        run: npm publish --access public
+      - name: Publish scoped package to npm with NPM_TOKEN
+        if: needs.check_publish_keyword.outputs.publish_method == 'token'
+        run: npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -86,11 +114,12 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: '24'
           registry-url: 'https://npm.pkg.github.com'
+          package-manager-cache: false
       - run: npm install
       - name: Publish scoped package to GitHub Packages
         run: |
