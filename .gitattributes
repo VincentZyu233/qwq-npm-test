@@ -1,5 +1,5 @@
-*.md linguist-detectable=true
+*.md linguist-detectable=true -linguist-documentation
 *.json linguist-detectable=true
-*.yml linguist-detectable=true
-*.yaml linguist-detectable=true
+*.yml linguist-detectable=true -linguist-vendored
+*.yaml linguist-detectable=true -linguist-vendored
 .gitattributes linguist-detectable=true
